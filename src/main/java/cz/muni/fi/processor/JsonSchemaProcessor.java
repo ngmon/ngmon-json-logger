@@ -147,7 +147,6 @@ public class JsonSchemaProcessor extends AbstractProcessor {
 
                     for (MethodInvocationInfo methodInfo : methodsInfo) {
                         if (methodInfo.getObject().endsWith(")") || methodInfo.getArgObject().endsWith(")")) {
-                            //to by malo znamenat, ze sa dana metoda volala na vysledku inej metody, nie priamo ako staticka.
                             continue;
                         }
                         
@@ -161,10 +160,10 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             continue;
                         }
                         
-                        //ziskat fqn methodInfo.object a methodInfo.argObject
+                        //get fqn of methodInfo.object and methodInfo.argObject
                         String fqnObject = "";
                         String fqnArgObject = "";
-                        //ako prve optimisticky skusime, ci uz nahodou nemame tie fqn
+                        
                         if (methodInfo.getObject().contains(".")) {
                             fqnObject = methodInfo.getObject();
                         }
@@ -172,26 +171,27 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             fqnArgObject = methodInfo.getArgObject();
                         }
                         
-                        if (fqnObject.equals("") || fqnArgObject.equals("")) { //ak nie,
+                        if (fqnObject.equals("") || fqnArgObject.equals("")) {
                             List<String> asteriskImports = new ArrayList<>();
+                            //check for direct imports
                             for (ImportTree imp : classImports) {
                                 String importt = imp.getQualifiedIdentifier().toString();
-
+                                
                                 if (importt.endsWith(methodInfo.getObject())) {
                                     fqnObject = importt;
                                 }
-
+                                
                                 if (importt.endsWith(methodInfo.getArgObject())) {
                                     fqnArgObject = importt;
                                 }
-
+                                
                                 if (importt.endsWith("*")) {
                                     asteriskImports.add(importt);
                                 }
                             }
                             
-                            if (fqnObject.equals("") || fqnArgObject.equals("")) { //ak na ne nebol priamy import,
-                                if (asteriskImports.isEmpty()) { //a ak neexistovali hromadne importy, je to z tohto balika.
+                            if (fqnObject.equals("") || fqnArgObject.equals("")) {
+                                if (asteriskImports.isEmpty()) { //no direct import AND no package imports -> the same package
                                     if (fqnObject.equals("")) {
                                         fqnObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getObject();
                                     }
@@ -200,7 +200,7 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                     }
                                 } else {
                                     boolean oneAlreadyFound = false;
-                                    for (String importt : asteriskImports) { //musime hladat v hromadnych importoch
+                                    for (String importt : asteriskImports) {
                                         String path = "src" + File.separator + "main" + File.separator + "java" + File.separator
                                             + importt.substring(0, importt.length() - 1).replace('.', File.separatorChar);
                                         if (fqnObject.equals("")) {
@@ -225,7 +225,7 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                         }
                                     }
                                     
-                                    //ak je po tom vsetkom furt nenajdeny, musi byt v tom istom package
+                                    //still not found -> the same package
                                     if (fqnObject.equals("")) {
                                         fqnObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getObject();
                                     }
@@ -237,10 +237,9 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             }
                         }
                         
-                        //na tomto mieste uz mame urcite fqn oboch
-                        //prejst enum z triedy fqnObject, ktory sa vztahuje na dany fqnArgObject; ci obsahuje tu metodu
+                        //check if class fqnObject has enum with @SourceNS(fqnArgObject) that contains the method in question
                         TypeElement entityClass = elements.getTypeElement(fqnObject);
-                        boolean supported = true; //ak tam neni prislusna anotacia, neobmedzujem ziadne metody... TODO moze byt?
+                        boolean supported = true;
                         for (Element elem : entityClass.getEnclosedElements()) {
                             if (elem.getKind() == ElementKind.ENUM) {
                                 if (elem.getAnnotation(SourceNamespace.class) != null) {
@@ -254,8 +253,6 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                             }
                                         }
                                         if (!found) {
-                                            //jediny pripad, ked sa moze zmenit supported na false je, ked sme v enume pre dany NS
-                                            //  a nie je v nom povolena nasa volana metoda
                                             supported = false;
                                         }
                                     }
@@ -310,12 +307,6 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             if (e.getKind() == ElementKind.METHOD) {
                                 ExecutableElement method = (ExecutableElement) e;
                                 String methodName = method.getSimpleName().toString();
-                                
-                                //forbid method overloading
-//                                if (methods.containsKey(methodName)) {
-//                                    messager.printMessage(Diagnostic.Kind.ERROR, "Method overloading not allowed here", e); //TODO preco to nespoji s tym Elementom e? :(
-//                                    //note: ten subor s json schemou bude sice validny, ale neuplny... asi na to upozornit v tej hlaske
-//                                }
                                 
                                 schema.writeStartObject();
                                 schema.writeStringField("$ref", "#/definitions/" + methodName);
@@ -393,7 +384,7 @@ public class JsonSchemaProcessor extends AbstractProcessor {
             }
         }
         
-        return true; //uz moze vratit true, lebo ziadny dalsi processor nie je
+        return true;
     }
     
     private String getFQN(Element classElement) {
@@ -488,7 +479,6 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                     }
                                     classContent.append(paramName);
                                 }
-                                //zavriet tu zatvorku za parametrami metody, dopisat telo metody
                                 classContent.append(") {\n        return JSONer.getEventTypeDetails(\"").append(methodName)
                                         .append("\", new String[]{");
                                 putComma = false;
@@ -501,16 +491,15 @@ public class JsonSchemaProcessor extends AbstractProcessor {
 
                                     classContent.append("\"").append(paramNames.get(k)).append("\"");
                                 }
-                                //skonci pole stringov
-                                classContent.append("}");
-                                //vsetky parametre
+                                classContent.append("}"); //end String[]{}
+                                //method params:
                                 for (int k = 0; k < paramNames.size(); k++) {
                                     classContent.append(", ").append(paramNames.get(k));
                                 }
-                                classContent.append(");\n    }\n"); //uzavriet metodu
+                                classContent.append(");\n    }\n"); //end method
                             }
                             
-                            classContent.append("}\n"); //uzavriet triedu
+                            classContent.append("}\n"); //end class
 
                             JavaFileObject file = filer.createSourceFile(classPackage + "." + className);
 
