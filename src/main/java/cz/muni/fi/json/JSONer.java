@@ -33,10 +33,12 @@ public class JSONer {
             }
             json.writeEndObject();
             
+            json.flush();
+            writer.close();
+            
             details = new EventTypeDetails();
             details.setEventType(eventType);
             details.setJson(writer.toString());
-            writer.close();
         } catch (IOException e) {
         }
         

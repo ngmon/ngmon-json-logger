@@ -60,7 +60,6 @@ public class MethodInvocationInfo {
         this.methodTree = methodTree;
     }
     
-    //TODO prec (potrebne len pre debug)
     @Override
     public String toString() {
         return object + "." + methodName + "(" + argObject + "." + argMethodName + "())";

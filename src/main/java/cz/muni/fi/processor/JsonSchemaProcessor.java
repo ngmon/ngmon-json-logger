@@ -131,9 +131,7 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                     }
                 }
                 
-                for (Element element : env.getRootElements()) { //spracuva vsetky, nie iba @Namespace
-                    //process only classes changed since the last build..?
-                    //TODO problem: ak sa zmenilo nieco v @SourceNamespace enumoch, treba prekontrolovat vsetko, co to pouziva :/
+                for (Element element : env.getRootElements()) {
                     CompilationUnitTree compUnit = trees.getPath(element).getCompilationUnit();
                     List<MethodInvocationInfo> methodsInfo = new ArrayList<>();
                     for (Element e : element.getEnclosedElements()) {
@@ -150,12 +148,9 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                     for (MethodInvocationInfo methodInfo : methodsInfo) {
                         if (methodInfo.getObject().endsWith(")") || methodInfo.getArgObject().endsWith(")")) {
                             //to by malo znamenat, ze sa dana metoda volala na vysledku inej metody, nie priamo ako staticka.
-                            //kedze nie som kompilator, nemozem to kontrolovat az do takych detailov, aby som spojila entitu s 
-                            //  metodou v NS cez volania dalsich metod; kontrolujem to, iba ak je to hned za sebou
-                            messager.printMessage(Diagnostic.Kind.NOTE, "skipping) '" + methodInfo.getArgObject() + "." + methodInfo.getArgMethodName() + "'");
                             continue;
                         }
-
+                        
                         String argObjSimpleName;
                         if (methodInfo.getArgObject().lastIndexOf('.') == -1) {
                             argObjSimpleName = methodInfo.getArgObject();
@@ -163,45 +158,82 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             argObjSimpleName = methodInfo.getArgObject().substring(methodInfo.getArgObject().lastIndexOf('.') + 1);
                         }
                         if (! containsName(namespaces, argObjSimpleName)) {
-                            //ak ta druha metoda nie je z nejakeho NS (samozrejme nie je iste, ze ak namespaces.contains(xx), tak 
-                            //  to je NS - moze to mat ine FQN. ale ak !contains, urcite to NS nie je, a aspon to trochu osekame.)
-                            messager.printMessage(Diagnostic.Kind.NOTE, "skipping!NS '" + methodInfo.getArgObject() + "." + methodInfo.getArgMethodName() + "' (" + argObjSimpleName + ")");
                             continue;
                         }
-
+                        
                         //ziskat fqn methodInfo.object a methodInfo.argObject
                         String fqnObject = "";
                         String fqnArgObject = "";
-                        List<String> asteriskImports = new ArrayList<>();
-                        for (ImportTree imp : classImports) {
-                            String importt = imp.getQualifiedIdentifier().toString();
-
-                            if (importt.endsWith(methodInfo.getObject())) {
-                                fqnObject = importt;
-                            }
-
-                            if (importt.endsWith(methodInfo.getArgObject())) {
-                                fqnArgObject = importt;
-                            }
-
-                            if (importt.endsWith("*")) {
-                                asteriskImports.add(importt);
-                            }
+                        //ako prve optimisticky skusime, ci uz nahodou nemame tie fqn
+                        if (methodInfo.getObject().contains(".")) {
+                            fqnObject = methodInfo.getObject();
                         }
+                        if (methodInfo.getArgObject().contains(".")) {
+                            fqnArgObject = methodInfo.getArgObject();
+                        }
+                        
+                        if (fqnObject.equals("") || fqnArgObject.equals("")) { //ak nie,
+                            List<String> asteriskImports = new ArrayList<>();
+                            for (ImportTree imp : classImports) {
+                                String importt = imp.getQualifiedIdentifier().toString();
 
-                        if (fqnObject.equals("") || fqnArgObject.equals("")) {
-                            if (asteriskImports.isEmpty()) {
-                                if (fqnObject.equals("")) {
-                                    fqnObject = classFQN.substring(0, classFQN.lastIndexOf('.'))
-                                            + "." + methodInfo.getObject();
+                                if (importt.endsWith(methodInfo.getObject())) {
+                                    fqnObject = importt;
                                 }
-                                if (fqnArgObject.equals("")) {
-                                    fqnArgObject = classFQN.substring(0, classFQN.lastIndexOf('.'))
-                                            + "." + methodInfo.getArgObject();
+
+                                if (importt.endsWith(methodInfo.getArgObject())) {
+                                    fqnArgObject = importt;
                                 }
-                            } else {
-                                messager.printMessage(Diagnostic.Kind.NOTE, "o-ou");
-                                //TODO najst tie fqn, ak ich este furt nemam (tj. neboli jednoducho zistitelne... -> papier)
+
+                                if (importt.endsWith("*")) {
+                                    asteriskImports.add(importt);
+                                }
+                            }
+                            
+                            if (fqnObject.equals("") || fqnArgObject.equals("")) { //ak na ne nebol priamy import,
+                                if (asteriskImports.isEmpty()) { //a ak neexistovali hromadne importy, je to z tohto balika.
+                                    if (fqnObject.equals("")) {
+                                        fqnObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getObject();
+                                    }
+                                    if (fqnArgObject.equals("")) {
+                                        fqnArgObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getArgObject();
+                                    }
+                                } else {
+                                    boolean oneAlreadyFound = false;
+                                    for (String importt : asteriskImports) { //musime hladat v hromadnych importoch
+                                        String path = "src" + File.separator + "main" + File.separator + "java" + File.separator
+                                            + importt.substring(0, importt.length() - 1).replace('.', File.separatorChar);
+                                        if (fqnObject.equals("")) {
+                                            if (Files.exists(FileSystems.getDefault().getPath(path + methodInfo.getObject() + ".java"))) {
+                                                fqnObject = importt.substring(0, importt.length() - 1) + methodInfo.getObject();
+                                                if (oneAlreadyFound) {
+                                                    break;
+                                                } else {
+                                                    oneAlreadyFound = true;
+                                                }
+                                            }
+                                        }
+                                        if (fqnArgObject.equals("")) {
+                                            if (Files.exists(FileSystems.getDefault().getPath(path + methodInfo.getArgObject() + ".java"))) {
+                                                fqnArgObject = importt.substring(0, importt.length() - 1) + methodInfo.getArgObject();
+                                                if (oneAlreadyFound) {
+                                                    break;
+                                                } else {
+                                                    oneAlreadyFound = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                    
+                                    //ak je po tom vsetkom furt nenajdeny, musi byt v tom istom package
+                                    if (fqnObject.equals("")) {
+                                        fqnObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getObject();
+                                    }
+                                    
+                                    if (fqnArgObject.equals("")) {
+                                        fqnArgObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getArgObject();
+                                    }
+                                }
                             }
                         }
                         
@@ -235,9 +267,8 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             compUnit = trees.getPath(methodInfo.getMethodElement()).getCompilationUnit();
                             long start = trees.getSourcePositions().getStartPosition(compUnit, methodInfo.getMethodTree());
                             LineMap lineMap = compUnit.getLineMap();
-                            messager.printMessage(Diagnostic.Kind.ERROR, "Method '" + methodInfo.getArgMethodName() + "' not supported by '"
-                                    + methodInfo.getObject() + "' (line " + lineMap.getLineNumber(start) + ")", methodInfo.getMethodElement());
-                            //TODO hlaska ok?
+                            messager.printMessage(Diagnostic.Kind.ERROR, "Line " + lineMap.getLineNumber(start) + ": Method '" + methodInfo.getArgMethodName() + "' ("
+                                    + fqnArgObject + ") not supported by '" + methodInfo.getObject() + "'", methodInfo.getMethodElement());
                         }
                     }
                 }
