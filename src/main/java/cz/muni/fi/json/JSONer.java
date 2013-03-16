@@ -1,20 +1,35 @@
 package cz.muni.fi.json;
 
+import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import java.io.IOException;
 import java.io.StringWriter;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.List;
+import javax.tools.Diagnostic;
+import javax.tools.JavaFileObject;
 
 public class JSONer {
     
-    public static EventTypeDetails getEventTypeDetails(String eventType, String[] names, Object... values) {
+    private static ObjectMapper mapper = new ObjectMapper();
+    
+    public static String getEventJson(String fqnNS, String eventType, String[] names, Object... values) {
         JsonFactory jsonFactory = new JsonFactory();
         StringWriter writer = new StringWriter();
-        EventTypeDetails details = null;
         try (JsonGenerator json = jsonFactory.createGenerator(writer)) {
-            json.useDefaultPrettyPrinter();
-            
+            json.useDefaultPrettyPrinter(); //TODO potom odstranit, aby sa posielal len maly jednoriadkovy JSON
             json.writeStartObject();
+            
+            json.writeStringField("eventType", eventType); //TODO zmazat? asi zbytocne
+            
+            json.writeObjectFieldStart(fqnNS + ".json#/definitions/" + eventType);
             for (int i = 0; i < names.length; i++) {
                 json.writeFieldName(names[i]);
                 if (values[i] instanceof Number) {
@@ -33,15 +48,21 @@ public class JSONer {
             }
             json.writeEndObject();
             
-            json.flush();
-            writer.close();
-            
-            details = new EventTypeDetails();
-            details.setEventType(eventType);
-            details.setJson(writer.toString());
+            json.writeEndObject();
         } catch (IOException e) {
         }
         
-        return details;
+        return writer.toString();
+    }
+
+    public static String addEntityToEventJson(String entity, String json) {
+        try {
+            ObjectNode root = (ObjectNode) mapper.readTree(json);
+            root.put("entity", entity);
+            json = root.toString();
+        } catch (IOException ex) {
+        }
+        
+        return json;
     }
 }

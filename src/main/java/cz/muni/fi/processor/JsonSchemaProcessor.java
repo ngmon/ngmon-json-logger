@@ -428,12 +428,12 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                 classBeginning.append("package ").append(classPackage).append(";\n\n");
                             }
                             
-                            classBeginning.append("import cz.muni.fi.annotation.Namespace;\n");
-                            classBeginning.append("import cz.muni.fi.json.EventTypeDetails;\n");
-                            classBeginning.append("import cz.muni.fi.json.JSONer;\n");
+                            classBeginning.append("import cz.muni.fi.annotation.Namespace;\n")
+                                    .append("import cz.muni.fi.json.JSONer;\n");
                             
                             StringBuilder classContent = new StringBuilder();
-                            classContent.append("\n@Namespace\npublic class ").append(className).append(" {\n");
+                            classContent.append("\n@Namespace\npublic class ").append(className).append(" {\n")
+                                    .append("\n    private static final String FQN = ").append(className).append(".class.getCanonicalName();\n");
                             
                             JsonNode definitions = schemaRoot.get("definitions");
                             //delete schemas with no methods
@@ -446,7 +446,7 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             Iterator<String> methodsIterator = definitions.fieldNames();
                             while (methodsIterator.hasNext()) {
                                 String methodName = methodsIterator.next();
-                                classContent.append("\n    public static EventTypeDetails ").append(methodName).append("(");
+                                classContent.append("\n    public static String ").append(methodName).append("(");
                                 JsonNode method = definitions.get(methodName);
                                 JsonNode parameters = method.get("properties");
                                 Iterator<String> paramsIterator = parameters.fieldNames();
@@ -479,7 +479,7 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                     }
                                     classContent.append(paramName);
                                 }
-                                classContent.append(") {\n        return JSONer.getEventTypeDetails(\"").append(methodName)
+                                classContent.append(") {\n        return JSONer.getEventJson(FQN, \"").append(methodName)
                                         .append("\", new String[]{");
                                 putComma = false;
                                 for (int k = 0; k < paramNames.size(); k++) {
