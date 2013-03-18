@@ -24,7 +24,6 @@ public class JSONer {
         JsonFactory jsonFactory = new JsonFactory();
         StringWriter writer = new StringWriter();
         try (JsonGenerator json = jsonFactory.createGenerator(writer)) {
-            json.useDefaultPrettyPrinter(); //TODO potom odstranit, aby sa posielal len maly jednoriadkovy JSON
             json.writeStartObject();
             
             json.writeStringField("eventType", eventType); //TODO zmazat? asi zbytocne

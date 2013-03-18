@@ -22,7 +22,7 @@ public class L_EntityXY extends Logger {
     
     private static final String ENTITY_NAME = "EntityXY";
     
-    public static void log(String json) {
-        log(ENTITY_NAME, json);
+    public static void log(LEVEL level, String json) {
+        log(level, ENTITY_NAME, json);
     }
 }

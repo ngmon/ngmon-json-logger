@@ -11,7 +11,7 @@ import javax.lang.model.element.Element;
 
 public class MethodInvocationScanner extends TreeScanner<Void, Element> {
     
-    List<MethodInvocationInfo> methodsInfo = new ArrayList<>();
+    private List<MethodInvocationInfo> methodsInfo = new ArrayList<>();
     
     public List<MethodInvocationInfo> getMethodsInvocationInfo() {
         return this.methodsInfo;
@@ -24,8 +24,8 @@ public class MethodInvocationScanner extends TreeScanner<Void, Element> {
         if (methodSelect.getKind() == Tree.Kind.MEMBER_SELECT) {
             String methodName = ((MemberSelectTree) methodSelect).getIdentifier().toString();
             String object = ((MemberSelectTree) methodSelect).getExpression().toString();
-            if (methodTree.getArguments().size() == 1) {
-                ExpressionTree arg = methodTree.getArguments().get(0);
+            if (methodTree.getArguments().size() == 2) {
+                ExpressionTree arg = methodTree.getArguments().get(1);
                 if (arg.getKind() == Tree.Kind.METHOD_INVOCATION) {
                     MethodInvocationTree argMethodTree = (MethodInvocationTree) arg;
                     ExpressionTree argMethodSelect = argMethodTree.getMethodSelect();
