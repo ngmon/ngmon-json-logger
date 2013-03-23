@@ -1,18 +1,16 @@
 package cz.muni.fi.sampleproject;
 
 import cz.muni.fi.annotation.Namespace;
-import cz.muni.fi.json.JSONer;
+import cz.muni.fi.logger.AbstractNamespace;
 
 @Namespace
-public class SampleNamespace {
-
-    private static final String FQN = SampleNamespace.class.getCanonicalName();
+public class SampleNamespace extends AbstractNamespace {
 
     public static String event1(String param1, int param2) {
-        return JSONer.getEventJson(FQN, "event1", new String[]{"param1","param2"}, param1, param2);
+        return AbstractNamespace.getJson(param1, param2);
     }
 
     public static String event2(double a, double b, boolean c) {
-        return JSONer.getEventJson(FQN, "event2", new String[]{"a","b","c"}, a, b, c);
+        return AbstractNamespace.getJson(a, b, c);
     }
 }

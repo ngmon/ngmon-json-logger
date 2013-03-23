@@ -25,17 +25,22 @@ public class MethodInvocationScanner extends TreeScanner<Void, Element> {
             String methodName = ((MemberSelectTree) methodSelect).getIdentifier().toString();
             String object = ((MemberSelectTree) methodSelect).getExpression().toString();
             if (methodTree.getArguments().size() == 2) {
-                ExpressionTree arg = methodTree.getArguments().get(1);
-                if (arg.getKind() == Tree.Kind.METHOD_INVOCATION) {
-                    MethodInvocationTree argMethodTree = (MethodInvocationTree) arg;
+                //Entity.class
+                ExpressionTree arg0 = methodTree.getArguments().get(0); //Entity.class
+                
+                //Namespace.eventType(args)
+                ExpressionTree arg1 = methodTree.getArguments().get(1);
+                if (arg1.getKind() == Tree.Kind.METHOD_INVOCATION) {
+                    MethodInvocationTree argMethodTree = (MethodInvocationTree) arg1;
                     ExpressionTree argMethodSelect = argMethodTree.getMethodSelect();
                     if (argMethodSelect.getKind() == Tree.Kind.MEMBER_SELECT) {
                         methodInfo.setMethodName(methodName);
                         methodInfo.setObject(object);
+                        methodInfo.setArg0Entity(arg0.toString());
                         String argMethodName = ((MemberSelectTree) argMethodSelect).getIdentifier().toString();
                         String argObject = ((MemberSelectTree) argMethodSelect).getExpression().toString();
-                        methodInfo.setArgMethodName(argMethodName);
-                        methodInfo.setArgObject(argObject);
+                        methodInfo.setArg1MethodName(argMethodName);
+                        methodInfo.setArg1Object(argObject);
                         methodInfo.setMethodElement(element);
                         methodInfo.setMethodTree(methodTree);
                         methodsInfo.add(methodInfo);

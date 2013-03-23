@@ -1,6 +1,6 @@
 package cz.muni.fi.sampleproject;
 
-import cz.muni.fi.logger.Logger.LEVEL;
+import cz.muni.fi.logger.Logger;
 
 /**
  * Hello world!
@@ -10,9 +10,10 @@ public class App {
     public static void main(String[] args) {
         System.out.println("Hello World!");
         
-        L_EntityXY.log(LEVEL.INFO, SampleNamespace.event1("abc", 1));
-        L_EntityXY.log(LEVEL.ERROR, SampleNamespace.event2(1.2, 3.4f, true)); //will raise an error: 
-            //L_EntityXY does not have any enum annotated with @SourceNamespace("cz.muni.fi.sampleproject.SampleNamespace")
+        Logger.debug(EntityXY.class, SampleNamespace.event1("abc", 1));
+        Logger.debug(EntityXY.class, SampleNamespace.event2(4, 5, true)); //will raise an error: 
+            //EntityXY does not have any enum annotated with @SourceNamespace("cz.muni.fi.sampleproject.SampleNamespace")
             //  s.t. it contains "event2"
+        Logger.debug(null, SampleNamespace.event1("abc", 1)); //if (entity == null) do not log anything
     }
 }

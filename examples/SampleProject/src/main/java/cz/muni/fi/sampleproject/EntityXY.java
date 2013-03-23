@@ -1,9 +1,8 @@
 package cz.muni.fi.sampleproject;
 
 import cz.muni.fi.annotation.SourceNamespace;
-import cz.muni.fi.logger.Logger;
 
-public class L_EntityXY extends Logger {
+public class EntityXY {
     
     @SourceNamespace("cz.muni.fi.sampleproject.SampleNamespace")
     private enum SampleNamespaceEvents {
@@ -17,12 +16,5 @@ public class L_EntityXY extends Logger {
     
     private enum MyEnum { //no @SourceNamespace - ignored by the processor
         X, Y, Z
-    }
-    
-    
-    private static final String ENTITY_NAME = "EntityXY";
-    
-    public static void log(LEVEL level, String json) {
-        log(level, ENTITY_NAME, json);
     }
 }

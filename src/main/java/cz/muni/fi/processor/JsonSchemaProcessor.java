@@ -146,43 +146,67 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                     String classFQN = getFQN(element);
 
                     for (MethodInvocationInfo methodInfo : methodsInfo) {
-                        if (methodInfo.getObject().endsWith(")") || methodInfo.getArgObject().endsWith(")")) {
+                        if (! (methodInfo.getObject().equals("Logger") || methodInfo.getObject().endsWith(".Logger"))) {
                             continue;
                         }
                         
-                        String argObjSimpleName;
-                        if (methodInfo.getArgObject().lastIndexOf('.') == -1) {
-                            argObjSimpleName = methodInfo.getArgObject();
+                        if (methodInfo.getArg1Object().endsWith(")")) {
+                            continue;
+                        }
+                        
+                        switch (methodInfo.getMethodName()) {
+                            case "fatal": break;
+                            case "error": break;
+                            case "warn": break;
+                            case "info": break;
+                            case "debug": break;
+                            case "trace": break;
+                            case "log": break;
+                            
+                            default: continue;
+                        }
+                        
+                        if (methodInfo.getArg0Entity().equals("null")) {
+                            compUnit = trees.getPath(methodInfo.getMethodElement()).getCompilationUnit();
+                            long start = trees.getSourcePositions().getStartPosition(compUnit, methodInfo.getMethodTree());
+                            LineMap lineMap = compUnit.getLineMap();
+                            messager.printMessage(Diagnostic.Kind.WARNING, "Line " + lineMap.getLineNumber(start) + ": Entity missing - nothing will be logged.", methodInfo.getMethodElement());
+                            continue;
+                        }
+                        
+                        String arg1ObjSimpleName;
+                        if (methodInfo.getArg1Object().lastIndexOf('.') == -1) {
+                            arg1ObjSimpleName = methodInfo.getArg1Object();
                         } else {
-                            argObjSimpleName = methodInfo.getArgObject().substring(methodInfo.getArgObject().lastIndexOf('.') + 1);
+                            arg1ObjSimpleName = methodInfo.getArg1Object().substring(methodInfo.getArg1Object().lastIndexOf('.') + 1);
                         }
-                        if (! containsName(namespaces, argObjSimpleName)) {
+                        if (! containsName(namespaces, arg1ObjSimpleName)) {
                             continue;
                         }
                         
-                        //get fqn of methodInfo.object and methodInfo.argObject
-                        String fqnObject = "";
-                        String fqnArgObject = "";
+                        //get fqn of methodInfo.arg0Entity and methodInfo.arg1Object
+                        String fqnArg0Entity = "";
+                        String fqnArg1Object = "";
                         
-                        if (methodInfo.getObject().contains(".")) {
-                            fqnObject = methodInfo.getObject();
+                        if (methodInfo.getArg0Entity().contains(".")) {
+                            fqnArg0Entity = methodInfo.getArg0Entity();
                         }
-                        if (methodInfo.getArgObject().contains(".")) {
-                            fqnArgObject = methodInfo.getArgObject();
+                        if (methodInfo.getArg1Object().contains(".")) {
+                            fqnArg1Object = methodInfo.getArg1Object();
                         }
                         
-                        if (fqnObject.equals("") || fqnArgObject.equals("")) {
+                        if (fqnArg0Entity.equals("") || fqnArg1Object.equals("")) {
                             List<String> asteriskImports = new ArrayList<>();
                             //check for direct imports
                             for (ImportTree imp : classImports) {
                                 String importt = imp.getQualifiedIdentifier().toString();
                                 
-                                if (importt.endsWith(methodInfo.getObject())) {
-                                    fqnObject = importt;
+                                if (importt.endsWith(methodInfo.getArg0Entity())) {
+                                    fqnArg0Entity = importt;
                                 }
                                 
-                                if (importt.endsWith(methodInfo.getArgObject())) {
-                                    fqnArgObject = importt;
+                                if (importt.endsWith(methodInfo.getArg1Object())) {
+                                    fqnArg1Object = importt;
                                 }
                                 
                                 if (importt.endsWith("*")) {
@@ -190,22 +214,22 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                 }
                             }
                             
-                            if (fqnObject.equals("") || fqnArgObject.equals("")) {
+                            if (fqnArg0Entity.equals("") || fqnArg1Object.equals("")) {
                                 if (asteriskImports.isEmpty()) { //no direct import AND no package imports -> the same package
-                                    if (fqnObject.equals("")) {
-                                        fqnObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getObject();
+                                    if (fqnArg0Entity.equals("")) {
+                                        fqnArg0Entity = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getArg0Entity();
                                     }
-                                    if (fqnArgObject.equals("")) {
-                                        fqnArgObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getArgObject();
+                                    if (fqnArg1Object.equals("")) {
+                                        fqnArg1Object = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getArg1Object();
                                     }
                                 } else {
                                     boolean oneAlreadyFound = false;
                                     for (String importt : asteriskImports) {
                                         String path = "src" + File.separator + "main" + File.separator + "java" + File.separator
                                             + importt.substring(0, importt.length() - 1).replace('.', File.separatorChar);
-                                        if (fqnObject.equals("")) {
-                                            if (Files.exists(FileSystems.getDefault().getPath(path + methodInfo.getObject() + ".java"))) {
-                                                fqnObject = importt.substring(0, importt.length() - 1) + methodInfo.getObject();
+                                        if (fqnArg0Entity.equals("")) {
+                                            if (Files.exists(FileSystems.getDefault().getPath(path + methodInfo.getArg0Entity() + ".java"))) {
+                                                fqnArg0Entity = importt.substring(0, importt.length() - 1) + methodInfo.getArg0Entity();
                                                 if (oneAlreadyFound) {
                                                     break;
                                                 } else {
@@ -213,9 +237,9 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                                 }
                                             }
                                         }
-                                        if (fqnArgObject.equals("")) {
-                                            if (Files.exists(FileSystems.getDefault().getPath(path + methodInfo.getArgObject() + ".java"))) {
-                                                fqnArgObject = importt.substring(0, importt.length() - 1) + methodInfo.getArgObject();
+                                        if (fqnArg1Object.equals("")) {
+                                            if (Files.exists(FileSystems.getDefault().getPath(path + methodInfo.getArg1Object() + ".java"))) {
+                                                fqnArg1Object = importt.substring(0, importt.length() - 1) + methodInfo.getArg1Object();
                                                 if (oneAlreadyFound) {
                                                     break;
                                                 } else {
@@ -226,28 +250,28 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                     }
                                     
                                     //still not found -> the same package
-                                    if (fqnObject.equals("")) {
-                                        fqnObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getObject();
+                                    if (fqnArg0Entity.equals("")) {
+                                        fqnArg0Entity = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getArg0Entity();
                                     }
                                     
-                                    if (fqnArgObject.equals("")) {
-                                        fqnArgObject = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getArgObject();
+                                    if (fqnArg1Object.equals("")) {
+                                        fqnArg1Object = classFQN.substring(0, classFQN.lastIndexOf('.')) + "." + methodInfo.getArg1Object();
                                     }
                                 }
                             }
                         }
                         
                         //check if class fqnObject has enum with @SourceNS(fqnArgObject) that contains the method in question
-                        TypeElement entityClass = elements.getTypeElement(fqnObject);
+                        TypeElement entityClass = elements.getTypeElement(fqnArg0Entity);
                         boolean supported = true;
                         for (Element elem : entityClass.getEnclosedElements()) {
                             if (elem.getKind() == ElementKind.ENUM) {
                                 if (elem.getAnnotation(SourceNamespace.class) != null) {
                                     String sourceNS = elem.getAnnotation(SourceNamespace.class).value();
-                                    if (sourceNS.equals(fqnArgObject)) {
+                                    if (sourceNS.equals(fqnArg1Object)) {
                                         boolean found = false;
                                         for (Element el : elem.getEnclosedElements()) {
-                                            if (el.toString().equals(methodInfo.getArgMethodName())) {
+                                            if (el.toString().equals(methodInfo.getArg1MethodName())) {
                                                 found = true;
                                                 break;
                                             }
@@ -264,8 +288,8 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             compUnit = trees.getPath(methodInfo.getMethodElement()).getCompilationUnit();
                             long start = trees.getSourcePositions().getStartPosition(compUnit, methodInfo.getMethodTree());
                             LineMap lineMap = compUnit.getLineMap();
-                            messager.printMessage(Diagnostic.Kind.ERROR, "Line " + lineMap.getLineNumber(start) + ": Method '" + methodInfo.getArgMethodName() + "' ("
-                                    + fqnArgObject + ") not supported by '" + methodInfo.getObject() + "'", methodInfo.getMethodElement());
+                            messager.printMessage(Diagnostic.Kind.ERROR, "Line " + lineMap.getLineNumber(start) + ": Method '" + methodInfo.getArg1MethodName() + "' ("
+                                    + fqnArg1Object + ") not supported by '" + methodInfo.getArg0Entity() + "'", methodInfo.getMethodElement());
                         }
                     }
                 }
@@ -429,11 +453,10 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                             }
                             
                             classBeginning.append("import cz.muni.fi.annotation.Namespace;\n")
-                                    .append("import cz.muni.fi.json.JSONer;\n");
+                                    .append("import cz.muni.fi.logger.AbstractNamespace;\n");
                             
                             StringBuilder classContent = new StringBuilder();
-                            classContent.append("\n@Namespace\npublic class ").append(className).append(" {\n")
-                                    .append("\n    private static final String FQN = ").append(className).append(".class.getCanonicalName();\n");
+                            classContent.append("\n@Namespace\npublic class ").append(className).append(" extends AbstractNamespace {\n");
                             
                             JsonNode definitions = schemaRoot.get("definitions");
                             //delete schemas with no methods
@@ -479,22 +502,16 @@ public class JsonSchemaProcessor extends AbstractProcessor {
                                     }
                                     classContent.append(paramName);
                                 }
-                                classContent.append(") {\n        return JSONer.getEventJson(FQN, \"").append(methodName)
-                                        .append("\", new String[]{");
+                                classContent.append(") {\n        return AbstractNamespace.getJson(");
                                 putComma = false;
                                 for (int k = 0; k < paramNames.size(); k++) {
                                     if (putComma) {
-                                        classContent.append(",");
+                                        classContent.append(", ");
                                     } else {
                                         putComma = true;
                                     }
 
-                                    classContent.append("\"").append(paramNames.get(k)).append("\"");
-                                }
-                                classContent.append("}"); //end String[]{}
-                                //method params:
-                                for (int k = 0; k < paramNames.size(); k++) {
-                                    classContent.append(", ").append(paramNames.get(k));
+                                    classContent.append(paramNames.get(k));
                                 }
                                 classContent.append(");\n    }\n"); //end method
                             }
