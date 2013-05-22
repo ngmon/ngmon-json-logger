@@ -59,7 +59,7 @@ public class JsonSchemaProcessor extends AbstractProcessor {
     private Filer filer;
     private Messager messager;
     
-    private static final String EVENTS_BASE_PKG = "EVENTS";
+    private static final String EVENTS_BASE_PKG = "events";
     private String configPath = "src" + File.separatorChar + "main" + File.separatorChar + "resources" + File.separatorChar + "config.properties";
     
     private long lastBuildTime = 0;

@@ -10,16 +10,16 @@ import java.io.StringWriter;
 public class JSONer {
     
     private static ObjectMapper mapper = new ObjectMapper();
+    private static JsonFactory jsonFactory = new JsonFactory();
     
     public static String getEventJson(String fqnNS, String eventType, String[] names, Object... values) {
-        JsonFactory jsonFactory = new JsonFactory();
         StringWriter writer = new StringWriter();
         try (JsonGenerator json = jsonFactory.createGenerator(writer)) {
             json.writeStartObject();
             
-            json.writeStringField("eventType", eventType); //TODO zmazat? asi zbytocne
+            json.writeStringField("schema", fqnNS.replace('.', '/') + ".json#/definitions/" + eventType);
             
-            json.writeObjectFieldStart(fqnNS + ".json#/definitions/" + eventType);
+            json.writeObjectFieldStart("properties");
             for (int i = 0; i < names.length; i++) {
                 json.writeFieldName(names[i]);
                 if (values[i] instanceof Number) {

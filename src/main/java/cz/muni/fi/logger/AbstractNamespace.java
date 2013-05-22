@@ -5,7 +5,7 @@ import cz.muni.fi.json.JSONer;
 public abstract class AbstractNamespace {
     
     protected static String getJson(Object... paramValues) {
-        //toto volanie je tu len pre istotu - nemalo by sa to sem nikdy dostat, lebo to volanie kompletne prekryje aspect
+        //the following will never be called if the aspect overrides this method the way it should; just to be safe
         return JSONer.getEventJson("", "", new String[]{}, paramValues);
     }
 }
