@@ -60,7 +60,7 @@ public abstract class Logger {
     
     public static void initAll() {
         schemas = new HashMap<>();
-        final String p = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "ENTITIES";
+        final String p = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "entities";
         try {
             Files.walkFileTree(FileSystems.getDefault().getPath(p), new SimpleFileVisitor<Path>() {
                 @Override
@@ -72,7 +72,7 @@ public abstract class Logger {
                         JsonNode methodNode = eventTypes.get(i);
                         Iterator<String> it = methodNode.fieldNames();
                         String methodName = it.next();
-                        methods.put(methodName, methodNode.get(methodName).textValue() + ".json");
+                        methods.put(methodName, methodNode.get(methodName).textValue().replace('.', '/') + ".json");
                     }
                     String entity = path.toString().substring(p.length() + 1).replace(File.separatorChar, '.');
                     schemas.put(entity.substring(0, entity.length() - 5), methods);
@@ -85,7 +85,7 @@ public abstract class Logger {
     }
     
     public static void initLoggers(String... entities) {
-        String p = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "ENTITIES";
+        String p = "src" + File.separator + "main" + File.separator + "resources" + File.separator + "entities";
         
         for (String entity : entities) {
             Map<String,String> methods = new HashMap<>();
@@ -96,7 +96,7 @@ public abstract class Logger {
                     JsonNode methodNode = eventTypes.get(i);
                     Iterator<String> it = methodNode.fieldNames();
                     String methodName = it.next();
-                    methods.put(methodName, methodNode.get(methodName).textValue() + ".json");
+                    methods.put(methodName, methodNode.get(methodName).textValue().replace('.', '/') + ".json");
                 }
                 schemas.put(entity, methods);
             } catch (IOException ex) {
@@ -129,7 +129,7 @@ public abstract class Logger {
     }
 
     protected void setNames(String entity, String schemaPack, String eventType, String[] paramNames) {
-        this.entity = entity.substring(2); //odstranit prefix L_ z nazvu entity
+        this.entity = entity;//.substring(2); //odstranit prefix L_ z nazvu entity
         
         //odstranit prefix LOGGER z baliku
         if (schemaPack.indexOf('.') == -1) {

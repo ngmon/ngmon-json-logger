@@ -15,8 +15,9 @@ public class JSONer {
             
             json.writeStringField("entity", entity);
             json.writeStringField("eventType", eventType);
+            json.writeStringField("schema", eventTypeSchema + "#");
             
-            json.writeObjectFieldStart(eventTypeSchema + "#");
+            json.writeObjectFieldStart("properties");
             for (int i = 0; i < names.length; i++) {
                 json.writeFieldName(names[i]);
                 if (values[i] instanceof Number) {

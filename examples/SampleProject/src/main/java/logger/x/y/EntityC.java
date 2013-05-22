@@ -1,9 +1,9 @@
-package LOGGER.x.y;
+package logger.x.y;
 
 import cz.muni.fi.annotation.Namespace;
 import cz.muni.fi.logger.Logger;
 
-public class L_EntityC extends Logger {
+public class EntityC extends Logger {
 
     @Namespace("")
     public Logger method1(String param1, boolean param2) {

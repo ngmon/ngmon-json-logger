@@ -48,10 +48,10 @@ public class JsonSchemaProcessor extends AbstractProcessor {
     private Filer filer;
     private Messager messager;
     
-    private static final String ENTITIES_BASE_PKG = "ENTITIES";
-    private static final String EVENTTYPES_BASE_PKG = "SCHEMAS";
-    private static final String CLASSES_BASE_PKG = "LOGGER";
-    private static final String CLASS_PREFIX = "L_";
+    private static final String ENTITIES_BASE_PKG = "entities";
+    private static final String EVENTTYPES_BASE_PKG = "schemas";
+    private static final String CLASSES_BASE_PKG = "logger";
+    private static final String CLASS_PREFIX = ""; //originally "L_"
     private final String configPath = "src" + File.separatorChar + "main" + File.separatorChar + "resources" + File.separatorChar + "config.properties";
     
     private long lastBuildTime = 0;
@@ -564,7 +564,6 @@ public class JsonSchemaProcessor extends AbstractProcessor {
      * Removes reference to entity from method schema.
      */
     private void unlinkEntityFromMethodSchema(String entity, String methodSchema, String path, Properties properties) throws IOException {
-        messager.printMessage(Diagnostic.Kind.NOTE, "entity: " + entity + ", methodSchema: " + methodSchema + ", deletePath: " + path);
         String[] entities;
         if (properties.getProperty(methodSchema) != null) {
             entities = properties.getProperty(methodSchema).split(",");

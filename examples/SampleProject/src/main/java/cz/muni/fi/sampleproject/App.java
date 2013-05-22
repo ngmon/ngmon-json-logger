@@ -1,8 +1,8 @@
 package cz.muni.fi.sampleproject;
 
-import LOGGER.L_EntityA;
-import LOGGER.x.y.L_EntityC;
 import cz.muni.fi.logger.Logger;
+import logger.EntityA;
+import logger.x.y.EntityC;
 
 /**
  * Hello world!
@@ -15,10 +15,10 @@ public class App {
         Logger.initLoggers("EntityA","x.y.EntityC");
 //        Logger.initAll();
         
-        L_EntityA entityA = new L_EntityA();
+        EntityA entityA = new EntityA();
         entityA.method1("abc", true).error();
         
-        L_EntityC entityC = new L_EntityC();
+        EntityC entityC = new EntityC();
         entityC.method3("abc", "def", "ghi").log();
     }
 }
